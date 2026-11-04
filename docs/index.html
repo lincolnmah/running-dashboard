@@ -600,7 +600,7 @@ function renderRaces() {
   wrap.querySelectorAll("td:nth-child(2), th:nth-child(2)").forEach((td) => { td.style.textAlign = "left"; });
   wrap.querySelectorAll("td:last-child, th:last-child").forEach((td) => { td.style.textAlign = "left"; td.style.whiteSpace = "normal"; td.style.minWidth = "220px"; });
   const p = document.createElement("p"); p.className = "desc"; p.style.marginTop = "8px";
-  p.textContent = "Moving time from Stryd excludes stops, so it can differ from your official finish time. Races not on your Stryd race calendar are identified by distance.";
+  p.textContent = "Moving time from Stryd excludes stops, so it can differ from your official finish time.";
   c.appendChild(p);
 }
 

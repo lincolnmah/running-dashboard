@@ -1,0 +1,6 @@
+# Never commit your Garmin API key
+connect-personal-api-key*
+*.key
+.env
+garmin_export/
+__pycache__/

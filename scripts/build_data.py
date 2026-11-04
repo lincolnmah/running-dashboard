@@ -25,5 +25,5 @@ acts = rd("garmin/garmin_activities.csv")
 out["g_acts"] = cols(acts, ["date","type","km","min","avg_hr","avg_power","load","aerobic_te","kcal"])
 out["generated"] = __import__("datetime").date.today().isoformat()
 js = "window.DASH = " + json.dumps(out, separators=(",", ":")) + ";\n"
-(ROOT / "site" / "data.js").write_text(js)
+(ROOT / "docs" / "data.js").write_text(js)
 print(len(js)//1024, "KB", {k: (len(v["date"]) if isinstance(v, dict) and "date" in v else len(v) if isinstance(v,list) else '') for k, v in out.items()})

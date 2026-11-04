@@ -26,4 +26,9 @@ out["g_acts"] = cols(acts, ["date","type","km","min","avg_hr","avg_power","load"
 out["generated"] = __import__("datetime").date.today().isoformat()
 js = "window.DASH = " + json.dumps(out, separators=(",", ":")) + ";\n"
 (ROOT / "docs" / "data.js").write_text(js)
+# cache-bust: point index.html at data.js?v=<hash of the data>
+import hashlib, re
+h = hashlib.sha1(js.encode()).hexdigest()[:10]
+idx = ROOT / "docs" / "index.html"
+idx.write_text(re.sub(r'<script src="data\.js(\?v=[0-9a-f]+)?"></script>', f'<script src="data.js?v={h}"></script>', idx.read_text()))
 print(len(js)//1024, "KB", {k: (len(v["date"]) if isinstance(v, dict) and "date" in v else len(v) if isinstance(v,list) else '') for k, v in out.items()})

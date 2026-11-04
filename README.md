@@ -18,7 +18,7 @@ Every chart has a **Table** button showing the underlying numbers, a date-range 
 
 | Source | From | Contents |
 |---|---|---|
-| Stryd | Dec 2024 | 658 runs (power, RSS, lower-body stress, HR), CP history, races, Chicago 2026 laps |
+| Stryd | Dec 2024 | 673 runs (power, RSS, lower-body stress, HR), CP history, races, Chicago 2026 laps |
 | Garmin | Nov 2022 | 2,348 activities, 1,450 days of daily health data, 1,430 nights of sleep |
 
 The Forerunner 245 Music doesn't record overnight HRV, so HRV isn't included.

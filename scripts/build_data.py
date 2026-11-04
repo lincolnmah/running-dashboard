@@ -13,7 +13,6 @@ out = {}
 runs = rd("stryd/runs.csv")
 out["stryd_runs"] = cols(runs, ["date","km","moving_s","power_w","rss","lower_body_stress","hr"])
 out["cp"] = cols(rd("stryd/cp_history.csv"), ["date","cp_w","mode"])
-out["shoes"] = rd("stryd/shoes.csv")
 out["races"] = rd("stryd/races.csv")
 out["chicago_laps"] = cols(rd("stryd/chicago2026_laps.csv"), ["lap","start_s","duration_s","distance_m","power_w","hr","cadence","ground_time_ms"])
 out["chicago_walk"] = rd("stryd/walking_chicago2026.csv")

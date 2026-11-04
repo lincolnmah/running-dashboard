@@ -191,17 +191,11 @@ footer code { font-size: 11.5px; }
     <div class="card full" id="chicagoNotes"></div>
   </div>
 
-  <h2>Shoes</h2>
-  <p class="section-sub">Lifetime distance per pair from Stryd, against an 800 km replacement guide.</p>
-  <div class="grid">
-    <div class="card full" data-chart="shoes"></div>
-  </div>
-
   <footer id="footer"></footer>
 </div>
 <div class="tip" id="tip" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=def44fde73"></script>
+<script src="data.js?v=e3d5189290"></script>
 <script>
 (() => {
 "use strict";
@@ -632,33 +626,8 @@ function renderChicago() {
   for (const [b, t] of notes) { const p = document.createElement("p"); p.className = "callout"; const s = document.createElement("b"); s.textContent = b; p.append(s, document.createTextNode(t)); n.appendChild(p); }
 }
 
-// ---------- shoes ----------
-function renderShoes() {
-  const shoes = D.shoes.map((s) => ({ ...s, km: +s.km, runs: +s.runs })).sort((a, b) => b.km - a.km);
-  const box = card("shoes", { title: "Distance per pair", table: () => ({ cols: ["Shoe", "Distance", "Runs", "Hours"], rows: shoes.map((s) => [s.name + (s.default ? " (default)" : ""), nf(s.km) + " km", nf(s.runs), nf(+s.hours, 0)]) }) });
-  box.replaceChildren();
-  const W = Math.max(280, box.clientWidth || 600), rowH = 28, labW = Math.min(220, W * 0.42);
-  const top = 18, H = shoes.length * rowH + 24 + top, iw = W - labW - 60;
-  const max = niceTicks(0, Math.max(...shoes.map((s) => s.km)), 4).slice(-1)[0];
-  const x = (v) => labW + v / max * iw;
-  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": "Distance per shoe" }, box);
-  for (const tv of niceTicks(0, max, 4)) { el("line", { x1: x(tv), x2: x(tv), y1: top, y2: H - 20, stroke: tv === 0 ? css("--axis") : css("--grid") }, svg); const t = el("text", { x: x(tv), y: H - 6, "text-anchor": "middle" }, svg); t.textContent = tickFmt(tv); }
-  el("line", { x1: x(800), x2: x(800), y1: top - 4, y2: H - 20, stroke: css("--text-secondary"), "stroke-dasharray": "4 3" }, svg);
-  const rl = el("text", { x: x(800), y: 10, "text-anchor": "middle", class: "lbl" }, svg); rl.textContent = "800 km";
-  shoes.forEach((s, i) => {
-    const yc = top + i * rowH + rowH / 2, bh = 14, w = x(s.km) - labW, r = Math.min(4, w);
-    const name = el("text", { x: labW - 8, y: yc + 4, "text-anchor": "end", class: "lbl" }, svg); name.textContent = s.name.length > 30 ? s.name.slice(0, 29) + "…" : s.name;
-    el("path", { d: `M${labW},${yc - bh / 2} H${labW + w - r} Q${labW + w},${yc - bh / 2} ${labW + w},${yc - bh / 2 + r} V${yc + bh / 2 - r} Q${labW + w},${yc + bh / 2} ${labW + w - r},${yc + bh / 2} H${labW} Z`, fill: css("--series-1") }, svg);
-    const v = el("text", { x: labW + w + 6, y: yc + 4, class: "lbl" }, svg); v.textContent = nf(s.km) + " km";
-    const hit = el("rect", { x: 0, y: top + i * rowH, width: W, height: rowH, fill: "transparent", tabindex: 0 }, svg);
-    const on = (ev) => { hit.setAttribute("fill", css("--wash")); showTip(ev, s.name, [{ name: "Distance", value: nf(s.km) + " km" }, { name: "Runs", value: nf(s.runs) }, { name: "Hours", value: nf(+s.hours) }]); };
-    hit.addEventListener("pointermove", on);
-    hit.addEventListener("pointerleave", () => { hit.setAttribute("fill", "transparent"); hideTip(); });
-  });
-}
-
 // ---------- page ----------
-function renderAll() { renderTiles(); renderCharts(); renderRaces(); renderChicago(); renderShoes(); }
+function renderAll() { renderTiles(); renderCharts(); renderRaces(); renderChicago(); }
 $("#coverage").textContent = `Stryd since ${fmtDate(STRYD_START)} · Garmin since ${fmtDate(START_ALL)} · data as of ${fmtDate(END)}`;
 const ft = $("#footer");
 ft.append(document.createTextNode(`Built from ${nf(runs.length)} Stryd runs, ${nf(acts.length)} Garmin activities, ${nf(daily.length)} days of Garmin health data and ${nf(sleep.length)} nights of sleep. Generated ${D.generated}. `));

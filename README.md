@@ -11,7 +11,6 @@ A personal dashboard combining **Stryd** (running power) and **Garmin Connect** 
 - **Recovery:** resting heart rate, sleep, Body Battery peak, all-day stress (7-day averages), with marathon days marked
 - **Marathons:** every marathon in the Stryd history with power, %CP and heart rate
 - **Chicago 2026, lap by lap:** power and ground contact time per lap, walking breakdown, race-week context
-- **Shoes:** lifetime distance per pair
 
 Every chart has a **Table** button showing the underlying numbers, a date-range filter (3 months to all-time), hover tooltips and a dark mode.
 
@@ -19,7 +18,7 @@ Every chart has a **Table** button showing the underlying numbers, a date-range 
 
 | Source | From | Contents |
 |---|---|---|
-| Stryd | Dec 2024 | 658 runs (power, RSS, lower-body stress, HR), CP history, shoes, races, Chicago 2026 laps |
+| Stryd | Dec 2024 | 658 runs (power, RSS, lower-body stress, HR), CP history, races, Chicago 2026 laps |
 | Garmin | Nov 2022 | 2,348 activities, 1,450 days of daily health data, 1,430 nights of sleep |
 
 The Forerunner 245 Music doesn't record overnight HRV, so HRV isn't included.

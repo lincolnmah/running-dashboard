@@ -37,8 +37,8 @@ scripts/build_data.py         rebuilds docs/data.js from the CSVs
 
 ## Updating
 
-- **Garmin:** run `scripts/garmin_export.py --start 2015-01-01` with your Personal API key in `connect-personal-api-key.txt` next to it (that file is git-ignored; never commit it), then ask Claude to refresh the compact CSVs.
-- **Stryd:** Stryd data comes through Claude's Stryd connector, so ask Claude to refresh it.
-- Then run `python scripts/build_data.py` and commit.
+- **Garmin (automatic):** a GitHub Actions job (`.github/workflows/refresh-garmin.yml`) re-fetches the last 45 days of Garmin data every night and whenever you click **Refresh Garmin data** on the dashboard (it opens the job's page; click **Run workflow**). It needs your Garmin Personal API key saved as a repository secret named `GARMIN_API_KEY` (Settings → Secrets and variables → Actions). The key never appears in the code or the site.
+- **Garmin (manual):** run `scripts/garmin_export.py --start YYYY-MM-DD`, then `scripts/compact_garmin.py <export folder> --start YYYY-MM-DD` and `scripts/build_data.py`.
+- **Stryd:** Stryd has no personal API key, so its data comes through Claude's Stryd connector. Ask Claude to refresh it; the dashboard header shows how current each source is.
 
 This repo is public, so the dashboard and all the data in it are visible to anyone. To take it down, make the repo private again (on a free plan that also turns off the live page).

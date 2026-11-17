@@ -84,6 +84,10 @@ header p { margin: 0; color: var(--text-secondary); }
 .seg button[aria-pressed="true"] { color: var(--text-primary); font-weight: 600; background: var(--wash); }
 .filters .note { color: var(--text-muted); font-size: 12px; }
 .theme-btn { margin-left: auto; }
+.refresh-link { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; color: var(--text-primary); text-decoration: none; font-weight: 500; }
+.refresh-link:hover { background: var(--wash); }
+.refresh-link svg { width: 14px; height: 14px; }
+#coverage b { font-weight: 600; color: var(--text-primary); }
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 28px; }
 .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
 .tile .label { color: var(--text-secondary); font-size: 13px; }
@@ -148,7 +152,8 @@ footer code { font-size: 11.5px; }
       <button data-m="0">All</button>
     </div>
     <span class="note" id="rangeNote"></span>
-    <div class="seg theme-btn"><button id="themeBtn" aria-label="Toggle dark mode">Theme</button></div>
+    <div class="seg theme-btn"><a class="refresh-link" href="https://github.com/lincolnmah/running-dashboard/actions/workflows/refresh-garmin.yml" target="_blank" rel="noopener" title="Opens GitHub. Click 'Run workflow' there; the dashboard updates in about 3 minutes."><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.5 8a5.5 5.5 0 1 1-1.6-3.9"/><path d="M13.5 2.5v3h-3"/></svg>Refresh Garmin data</a></div>
+    <div class="seg"><button id="themeBtn" aria-label="Toggle dark mode">Theme</button></div>
   </div>
 
   <section class="tiles" id="tiles" aria-label="Summary"></section>
@@ -195,7 +200,7 @@ footer code { font-size: 11.5px; }
 </div>
 <div class="tip" id="tip" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=0bce4dde36"></script>
+<script src="data.js?v=245cba54d3"></script>
 <script>
 (() => {
 "use strict";
@@ -628,7 +633,8 @@ function renderChicago() {
 
 // ---------- page ----------
 function renderAll() { renderTiles(); renderCharts(); renderRaces(); renderChicago(); }
-$("#coverage").textContent = `Stryd since ${fmtDate(STRYD_START)} · Garmin since ${fmtDate(START_ALL)} · data as of ${fmtDate(END)}`;
+{ const cv = $("#coverage"); const b = (t) => { const e = document.createElement("b"); e.textContent = t; return e; };
+  cv.append("Stryd: ", b(`${fmtDate(STRYD_START)} – ${fmtDate(toT(D.stryd_asof))}`), " · Garmin: ", b(`${fmtDate(START_ALL)} – ${fmtDate(toT(D.garmin_asof))}`)); }
 const ft = $("#footer");
 ft.append(document.createTextNode(`Built from ${nf(runs.length)} Stryd runs, ${nf(acts.length)} Garmin activities, ${nf(daily.length)} days of Garmin health data and ${nf(sleep.length)} nights of sleep. Generated ${D.generated}. `));
 ft.append(document.createTextNode("Your Forerunner 245 Music doesn't record overnight HRV, so it isn't shown. Before December 2024 there is no Stryd data, so power, RSS and CP charts start there."));

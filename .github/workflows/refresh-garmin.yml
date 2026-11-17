@@ -1,0 +1,73 @@
+name: Refresh Garmin data
+
+# Run from the dashboard's "Refresh Garmin data" button (Actions > Run workflow),
+# and automatically every night.
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: "How many days back to re-fetch"
+        default: "45"
+  schedule:
+    - cron: "17 16 * * *"   # 16:17 UTC = about 3am in Melbourne
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: refresh-garmin
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check the API key secret exists
+        env:
+          GARMIN_API_KEY: ${{ secrets.GARMIN_API_KEY }}
+        run: |
+          if [ -z "$GARMIN_API_KEY" ]; then
+            echo "::error::Add your Garmin Personal API key as a repository secret named GARMIN_API_KEY (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install the Garmin client
+        run: python -m pip install --quiet gcpapi-sync
+
+      - name: Fetch recent Garmin data
+        env:
+          GARMIN_API_KEY: ${{ secrets.GARMIN_API_KEY }}
+          DAYS: ${{ github.event.inputs.days || '45' }}
+        run: |
+          START=$(date -u -d "$DAYS days ago" +%F)
+          echo "START=$START" >> "$GITHUB_ENV"
+          python scripts/garmin_export.py --start "$START" --out "$RUNNER_TEMP/export" \
+            --only activities,daily_summaries,sleep --strict
+
+      - name: Merge into the dashboard data and rebuild
+        run: |
+          python scripts/compact_garmin.py "$RUNNER_TEMP/export" --start "$START"
+          python scripts/build_data.py
+
+      - name: Commit and publish if anything changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if git diff --quiet; then
+            echo "No new Garmin data."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Refresh Garmin data ($START to today)"
+          git push
+          # ask GitHub Pages to rebuild the live site from the new commit
+          gh api -X POST "repos/${{ github.repository }}/pages/builds" >/dev/null || true

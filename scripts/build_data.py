@@ -23,6 +23,9 @@ out["g_sleep"] = cols(sl, ["date","sleep_h","deep_h","light_h","rem_h","awake_mi
 acts = rd("garmin/garmin_activities.csv")
 out["g_acts"] = cols(acts, ["date","type","km","min","avg_hr","avg_power","load","aerobic_te","kcal"])
 out["generated"] = __import__("datetime").date.today().isoformat()
+asof = D / "stryd" / "as_of.txt"
+out["stryd_asof"] = asof.read_text().strip() if asof.exists() else max(out["stryd_runs"]["date"])
+out["garmin_asof"] = max(out["g_daily"]["date"])
 js = "window.DASH = " + json.dumps(out, separators=(",", ":")) + ";\n"
 (ROOT / "docs" / "data.js").write_text(js)
 # cache-bust: point index.html at data.js?v=<hash of the data>

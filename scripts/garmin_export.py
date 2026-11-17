@@ -1,7 +1,8 @@
 """
 Garmin Connect Personal API -> CSV/JSON export.
 
-Reads your API key from connect-personal-api-key.txt (next to this script),
+Reads your API key from the GARMIN_API_KEY environment variable (used by the
+GitHub refresh job) or else from connect-personal-api-key.txt next to this script,
 pulls activities and daily health data for a date range, and writes one
 CSV and one JSON file per dataset into a garmin_export folder.
 
@@ -14,6 +15,7 @@ Read-only: the Personal API cannot change anything in your account.
 """
 
 import argparse
+import os
 import csv
 import json
 import sys
@@ -76,6 +78,8 @@ def main():
     p.add_argument("--start", help="first day, YYYY-MM-DD (default: 180 days ago)")
     p.add_argument("--end", help="last day, YYYY-MM-DD (default: today)")
     p.add_argument("--out", default=str(HERE / "garmin_export"), help="output folder")
+    p.add_argument("--only", help="comma-separated datasets to fetch, e.g. activities,sleep")
+    p.add_argument("--strict", action="store_true", help="exit with an error if any dataset fails")
     a = p.parse_args()
 
     end = date.fromisoformat(a.end) if a.end else date.today()
@@ -83,11 +87,13 @@ def main():
     if start > end:
         sys.exit("--start must be on or before --end")
 
-    if not KEY_FILE.exists():
-        sys.exit(f"API key file not found: {KEY_FILE}")
-    api_key = KEY_FILE.read_text(encoding="utf-8-sig").strip()
+    api_key = os.environ.get("GARMIN_API_KEY", "").strip()
     if not api_key:
-        sys.exit(f"API key file is empty: {KEY_FILE}")
+        if not KEY_FILE.exists():
+            sys.exit(f"No GARMIN_API_KEY set and no key file at {KEY_FILE}")
+        api_key = KEY_FILE.read_text(encoding="utf-8-sig").strip()
+    if not api_key:
+        sys.exit("The Garmin API key is empty.")
 
     out_dir = Path(a.out)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -106,6 +112,13 @@ def main():
         "steps": lambda: client.get_daily_steps(start, end),
     }
 
+    if a.only:
+        wanted = [x.strip() for x in a.only.split(",")]
+        unknown = [x for x in wanted if x not in datasets]
+        if unknown:
+            sys.exit(f"Unknown dataset(s): {', '.join(unknown)}")
+        datasets = {k: v for k, v in datasets.items() if k in wanted}
+
     failures = 0
     for name, fetch in datasets.items():
         try:
@@ -122,6 +135,8 @@ def main():
             print(f"  {name:<16} FAILED: {type(e).__name__}: {e}")
 
     print("\nDone." + (f" {failures} dataset(s) failed; see above." if failures else ""))
+    if failures and a.strict:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -182,11 +182,17 @@ footer code { font-size: 11.5px; }
     <div class="card" data-chart="stress"></div>
   </div>
 
-  <h2>Marathons</h2>
-  <p class="section-sub">Every marathon in your Stryd history. %CP is race power as a share of your CP on the day; around 80–85% is typical for a marathon.</p>
+  <h2>Running form</h2>
+  <p class="section-sub">Stryd's Form Profile scores (Elastic Power, Landing Control, Shock Protection, Rhythm and Forward Drive) are only available in the Stryd app, so each card tracks the Stryd measurement closest to that attribute. To keep pace changes from looking like form changes, only steady runs are used: at least 20 minutes at 65–85% of your CP at the time, and not races. Tiles compare your last 3 months with the same 3 months a year earlier.</p>
+  <section class="tiles" id="formTiles" aria-label="Running form summary"></section>
   <div class="grid">
-    <div class="card full" id="racesCard"></div>
+    <div class="card" data-chart="fElastic"></div>
+    <div class="card" data-chart="fShock"></div>
+    <div class="card" data-chart="fRhythm"></div>
+    <div class="card" data-chart="fDrive"></div>
+    <div class="card full" data-chart="fLanding"></div>
   </div>
+  <p class="section-sub" style="margin-top:10px;font-size:12.5px">Form data starts on 14 February 2025. Before then, leg spring stiffness and vertical oscillation were recorded on a different scale (about 50% and 25% higher), which looks like a change in the pod's calibration rather than in your running.</p>
 
   <h2>Chicago 2026, lap by lap</h2>
   <p class="section-sub">Each bar is one lap (you pressed lap at each mile marker). Power drifted down steadily through the first half and fell sharply after about 32 km, when walk breaks began.</p>
@@ -200,7 +206,7 @@ footer code { font-size: 11.5px; }
 </div>
 <div class="tip" id="tip" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=245cba54d3"></script>
+<script src="data.js?v=047b327f3a"></script>
 <script>
 (() => {
 "use strict";
@@ -353,8 +359,11 @@ function timeChart(box, opts) {
   const m = { l: 44, r: 12, t: 10, b: 24 };
   const iw = W - m.l - m.r, ih = H - m.t - m.b;
   const x0 = Math.max(range.start, opts.minT || 0), x1 = range.end;
-  const all = opts.series.flatMap((s) => s.pts.filter((p) => p.v != null && inR(p.t)));
+  const all = opts.series.filter((s) => s.kind !== "dots").flatMap((s) => s.pts.filter((p) => p.v != null && p.t >= x0 && inR(p.t)));
   if (!all.length) return empty(box, opts.emptyMsg || "No data in this date range.");
+  // per-run dots widen the axis only to their 5th–95th percentile, so one odd run can't flatten the trend
+  const dotVals = opts.series.filter((s) => s.kind === "dots").flatMap((s) => s.pts.filter((p) => p.v != null && p.t >= x0 && inR(p.t)).map((p) => p.v)).sort((a, b) => a - b);
+  if (dotVals.length > 4) { all.push({ v: dotVals[Math.floor(dotVals.length * 0.05)] }, { v: dotVals[Math.ceil(dotVals.length * 0.95) - 1] }); }
   let yMax, yMin;
   if (opts.stacked) {
     const sums = {}; for (const s of opts.series) for (const p of s.pts) if (inR(p.t) && p.v) sums[p.t] = (sums[p.t] || 0) + p.v;
@@ -374,6 +383,14 @@ function timeChart(box, opts) {
   const tt = timeTicks(x0, x1, iw);
   for (const t of tt.ticks) { const tx = el("text", { x: x(t), y: H - 6, "text-anchor": "middle" }, g); tx.textContent = tt.fmt(t); }
   raceMarkers(g, x, m.t, m.t + ih, x0, x1);
+
+  // faint per-run dots (context only, no hover)
+  for (const s of opts.series.filter((s) => s.kind === "dots")) {
+    for (const p of s.pts) {
+      if (p.v == null || p.t < x0 || !inR(p.t) || p.v < yLo || p.v > yHi) continue;
+      el("circle", { cx: x(p.t), cy: y(p.v), r: 2, fill: s.color, opacity: 0.22 }, g);
+    }
+  }
 
   // bars
   const bandDays = opts.bandDays || 7;
@@ -408,7 +425,7 @@ function timeChart(box, opts) {
     }
   }
   // lines
-  const lineSeries = opts.series.filter((s) => s.kind !== "bar");
+  const lineSeries = opts.series.filter((s) => s.kind !== "bar" && s.kind !== "dots");
   for (const s of lineSeries) {
     const pts = s.pts.filter((p) => inR(p.t));
     let d = "", pen = false, prev = null;
@@ -586,21 +603,85 @@ function renderCharts() {
   }
 }
 
-// ---------- races ----------
-function renderRaces() {
-  const c = $("#racesCard"); c.replaceChildren();
-  const h = document.createElement("h3"); h.textContent = "Marathon results"; c.appendChild(h);
-  const wrap = document.createElement("div"); wrap.className = "scroll-x"; c.appendChild(wrap);
-  const rowsR = [...races].sort((a, b) => b.t - a.t).map((r) => [
-    fmtDate(r.t), r.name, fmtHMS(r.moving_s), nf(r.km, 2) + " km", nf(r.power_w) + " W",
-    nf(r.power_w / r.cp_w * 100) + "%", nf(r.hr) + " bpm", nf(r.rss), r.note || "",
-  ]);
-  renderTable(wrap, { cols: ["Date", "Race", "Moving time", "Distance", "Avg power", "%CP", "Avg HR", "RSS", "Note"], rows: rowsR });
-  wrap.querySelectorAll("td:nth-child(2), th:nth-child(2)").forEach((td) => { td.style.textAlign = "left"; });
-  wrap.querySelectorAll("td:last-child, th:last-child").forEach((td) => { td.style.textAlign = "left"; td.style.whiteSpace = "normal"; td.style.minWidth = "220px"; });
-  const p = document.createElement("p"); p.className = "desc"; p.style.marginTop = "8px";
-  p.textContent = "Moving time from Stryd excludes stops, so it can differ from your official finish time.";
-  c.appendChild(p);
+// ---------- running form ----------
+const FORM_START = toT("2025-02-14");
+const cpAt = (t) => { let v = cpDaily[0].v; for (const c of cpDaily) { if (c.t <= t) v = c.v; else break; } return v; };
+const runKey = (d, km) => d + "|" + Number(km).toFixed(2);
+// race days are excluded from "steady" below; races carry their own dates
+const runIdx = new Map(runs.map((r) => [runKey(r.date, r.km), r]));
+const form = rows(D.form).map((f) => {
+  const r = runIdx.get(runKey(f.date, f.km)) || {};
+  return { ...f, power_w: r.power_w, moving_s: r.moving_s, lbs_km: r.lower_body_stress && f.km ? r.lower_body_stress / f.km : null };
+});
+const raceDays = new Set(races.map((r) => r.date));
+const steady = form.filter((f) => f.t >= FORM_START && !raceDays.has(f.date) && f.moving_s >= 1200 && f.power_w && f.power_w / cpAt(f.t) >= 0.65 && f.power_w / cpAt(f.t) <= 0.85);
+function monthlyMedian(list, key) {
+  const m = new Map();
+  for (const f of list) { const v = f[key]; if (v == null) continue; const d = new Date(f.t), k = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 15); if (!m.has(k)) m.set(k, []); m.get(k).push(v); }
+  return [...m.entries()].sort((a, b) => a[0] - b[0]).filter(([, v]) => v.length >= 3).map(([t, v]) => ({ t, v: median(v), n: v.length }));
+}
+const FORM = [
+  { id: "fElastic", attr: "Elastic Power", key: "lss", name: "Leg spring stiffness", unit: "kN/m", d: 2, better: "up",
+    desc: "How springy your leg is when it lands. Higher means more energy stored and returned each step." },
+  { id: "fShock", attr: "Shock Protection", key: "lbs_km", name: "Lower-body stress", unit: "per km", d: 1, better: "down",
+    desc: "Stryd's measure of mechanical load on your legs, per kilometre. Lower means less impact for the same distance." },
+  { id: "fRhythm", attr: "Rhythm", key: "cadence", name: "Cadence", unit: "steps/min", d: 0, better: "up",
+    desc: "Steps per minute. A quicker rhythm usually means shorter ground contact and less overstriding." },
+  { id: "fDrive", attr: "Forward Drive", key: "vr", name: "Vertical ratio", unit: "%", d: 2, better: "down",
+    desc: "Vertical bounce as a share of stride length. Lower means more of each stride goes forward, not up." },
+];
+const monthTitle = (t) => { const d = new Date(t); return `${MON[d.getUTCMonth()]} ${d.getUTCFullYear()}`; };
+function renderForm() {
+  const tilesBox = $("#formTiles"); tilesBox.replaceChildren();
+  const inWin = (a, b) => steady.filter((f) => f.t > a && f.t <= b);
+  const now = inWin(END - 91 * DAY, END), prev = inWin(END - 456 * DAY, END - 365 * DAY);
+  for (const M of FORM) {
+    const a = now.map((f) => f[M.key]).filter((v) => v != null), b = prev.map((f) => f[M.key]).filter((v) => v != null);
+    const cur = a.length ? median(a) : null, old = b.length ? median(b) : null;
+    let sub = M.name;
+    if (cur != null && old != null) {
+      const pct = (cur - old) / old * 100;
+      const better = M.better === "up" ? pct > 0 : pct < 0;
+      sub = Math.abs(pct) < 1 ? `${M.name} · about the same as a year ago` : `${M.name} · ${pct > 0 ? "up" : "down"} ${nf(Math.abs(pct), 1)}% on a year ago (${better ? "better" : "worse"})`;
+    }
+    tilesBox.appendChild(tile(M.attr, cur != null ? `${nf(cur, M.d)}${M.unit === "%" ? "%" : " " + M.unit}` : "–", sub));
+  }
+  const ilrRuns = form.filter((f) => f.ilr != null);
+  const ilrNow = ilrRuns.filter((f) => f.t > END - 91 * DAY).map((f) => f.ilr);
+  tilesBox.appendChild(tile("Landing Control", ilrNow.length ? `${nf(median(ilrNow), 1)} bw/s` : "–", `Impact loading rate · ${ilrRuns.length} run${ilrRuns.length === 1 ? "" : "s"} recorded so far`));
+
+  const c1 = C("--series-1");
+  for (const M of FORM) {
+    const mm = monthlyMedian(steady, M.key);
+    const dots = steady.map((f) => ({ t: f.t, v: f[M.key] }));
+    const ser = [{ name: "Monthly median", color: c1, pts: mm, line: true }, { name: "Each steady run", color: c1, pts: dots, kind: "dots" }];
+    const box = card(M.id, {
+      title: M.attr,
+      desc: `${M.name} (${M.unit}), ${M.better === "up" ? "higher" : "lower"} is better. ${M.desc}`,
+      legend: ser,
+      table: () => ({ cols: ["Month", M.name, "Steady runs"], rows: mm.filter((p) => inR(p.t)).slice().reverse().map((p) => [monthTitle(p.t), nf(p.v, M.d), p.n]) }),
+    });
+    timeChart(box, { series: ser, fmt: (v) => `${nf(v, M.d)} ${M.unit}`, pointTitle: monthTitle, minT: FORM_START, height: 210,
+      aria: `${M.attr}: ${M.name} by month`, emptyMsg: "No steady runs in this date range." });
+  }
+
+  // Landing Control: impact loading rate, recorded only since Stryd's firmware added it
+  const ilrPts = ilrRuns.map((f) => ({ t: f.t, v: f.ilr }));
+  const first = ilrRuns.length ? ilrRuns[0].t : null;
+  const box = card("fLanding", {
+    title: "Landing Control",
+    desc: `Impact loading rate (body weights per second), lower is better: how sharply force builds when your foot lands. Stryd started recording it on ${first ? fmtDate(first) : "a recent firmware update"}, so the trend fills in from there.`,
+    table: () => ({ cols: ["Date", "Distance", "Impact loading rate"], rows: ilrRuns.slice().reverse().map((f) => [fmtDate(f.t), nf(f.km, 1) + " km", nf(f.ilr, 1) + " bw/s"]) }),
+  });
+  if (ilrRuns.length < 8) {
+    const p = document.createElement("p"); p.className = "desc";
+    p.textContent = ilrRuns.length
+      ? `${ilrRuns.length} run${ilrRuns.length === 1 ? "" : "s"} so far: ${ilrRuns.map((f) => `${nf(f.ilr, 1)} on ${fmtDate(f.t)}`).join(", ")}. A trend line appears here once there are 8 runs.`
+      : "No runs with impact loading rate yet.";
+    box.replaceChildren(p);
+  } else {
+    timeChart(box, { series: [{ name: "Impact loading rate", color: c1, pts: ilrPts, dots: true }], fmt: (v) => `${nf(v, 1)} bw/s`, minT: first, height: 200, aria: "Impact loading rate per run" });
+  }
 }
 
 // ---------- Chicago ----------
@@ -632,7 +713,7 @@ function renderChicago() {
 }
 
 // ---------- page ----------
-function renderAll() { renderTiles(); renderCharts(); renderRaces(); renderChicago(); }
+function renderAll() { renderTiles(); renderCharts(); renderForm(); renderChicago(); }
 { const cv = $("#coverage"); const b = (t) => { const e = document.createElement("b"); e.textContent = t; return e; };
   cv.append("Stryd: ", b(`${fmtDate(STRYD_START)} – ${fmtDate(toT(D.stryd_asof))}`), " · Garmin: ", b(`${fmtDate(START_ALL)} – ${fmtDate(toT(D.garmin_asof))}`)); }
 const ft = $("#footer");

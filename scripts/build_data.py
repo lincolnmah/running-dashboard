@@ -14,6 +14,11 @@ runs = rd("stryd/runs.csv")
 out["stryd_runs"] = cols(runs, ["date","km","moving_s","power_w","rss","lower_body_stress","hr"])
 out["cp"] = cols(rd("stryd/cp_history.csv"), ["date","cp_w","mode"])
 out["races"] = rd("stryd/races.csv")
+# running-form measures per run (Stryd), from 14 Feb 2025 (earlier runs used a different calibration)
+form = rd("stryd/form.csv")
+for r in form:  # vertical ratio, %: vertical oscillation as a share of stride length
+    r["vr"] = f"{float(r['osc_cm']) / float(r['stride_m']):.2f}" if r["osc_cm"] and r["stride_m"] else ""
+out["form"] = cols(form, ["date","km","lss","osc_cm","stride_m","gct_ms","ilr","cadence","vr"])
 out["chicago_laps"] = cols(rd("stryd/chicago2026_laps.csv"), ["lap","start_s","duration_s","distance_m","power_w","hr","cadence","ground_time_ms"])
 out["chicago_walk"] = rd("stryd/walking_chicago2026.csv")
 daily = rd("garmin/garmin_daily.csv")

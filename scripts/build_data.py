@@ -19,8 +19,6 @@ form = rd("stryd/form.csv")
 for r in form:  # vertical ratio, %: vertical oscillation as a share of stride length
     r["vr"] = f"{float(r['osc_cm']) / float(r['stride_m']):.2f}" if r["osc_cm"] and r["stride_m"] else ""
 out["form"] = cols(form, ["date","km","lss","osc_cm","stride_m","gct_ms","ilr","cadence","vr"])
-out["chicago_laps"] = cols(rd("stryd/chicago2026_laps.csv"), ["lap","start_s","duration_s","distance_m","power_w","hr","cadence","ground_time_ms"])
-out["chicago_walk"] = rd("stryd/walking_chicago2026.csv")
 daily = rd("garmin/garmin_daily.csv")
 out["g_daily"] = cols(daily, ["date","steps","rhr","bb_min","bb_max","stress_avg","kcal","int_mod","int_vig","resp","utc_offset_h"])
 sl = rd("garmin/garmin_sleep.csv")

@@ -194,19 +194,11 @@ footer code { font-size: 11.5px; }
   </div>
   <p class="section-sub" style="margin-top:10px;font-size:12.5px">Form data starts on 14 February 2025. Before then, leg spring stiffness and vertical oscillation were recorded on a different scale (about 50% and 25% higher), which looks like a change in the pod's calibration rather than in your running.</p>
 
-  <h2>Chicago 2026, lap by lap</h2>
-  <p class="section-sub">Each bar is one lap (you pressed lap at each mile marker). Power drifted down steadily through the first half and fell sharply after about 32 km, when walk breaks began.</p>
-  <div class="grid">
-    <div class="card" data-chart="lapPower"></div>
-    <div class="card" data-chart="lapGct"></div>
-    <div class="card full" id="chicagoNotes"></div>
-  </div>
-
   <footer id="footer"></footer>
 </div>
 <div class="tip" id="tip" role="status" aria-live="polite"></div>
 
-<script src="data.js?v=047b327f3a"></script>
+<script src="data.js?v=de7c82dcc6"></script>
 <script>
 (() => {
 "use strict";
@@ -475,38 +467,6 @@ function timeChart(box, opts) {
   if (opts.unit) { const u = el("text", { x: m.l, y: m.t - 0, "text-anchor": "start", dy: -2 }, g); u.textContent = ""; }
 }
 
-// ---------- category bars (horizontal or column) ----------
-function columnChart(box, { cats, vals, color, fmt, title, ref, refLabel, height = 220, catLabel }) {
-  box.replaceChildren();
-  const W = Math.max(280, box.clientWidth || 600), H = height;
-  const m = { l: 44, r: 12, t: 14, b: 26 };
-  const iw = W - m.l - m.r, ih = H - m.t - m.b;
-  const ticks = niceTicks(0, Math.max(...vals, ref || 0), 4), yHi = ticks[ticks.length - 1];
-  const y = (v) => m.t + ih - v / yHi * ih;
-  const band = iw / cats.length, bw = Math.min(24, band - 2);
-  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": title }, box);
-  for (const tv of ticks) {
-    el("line", { x1: m.l, x2: W - m.r, y1: y(tv), y2: y(tv), stroke: tv === 0 ? css("--axis") : css("--grid") }, svg);
-    const t = el("text", { x: m.l - 6, y: y(tv) + 4, "text-anchor": "end" }, svg); t.textContent = tickFmt(tv);
-  }
-  const every = Math.ceil(cats.length / Math.floor(iw / 34));
-  cats.forEach((c, i) => {
-    const cx = m.l + band * i + band / 2, v = vals[i], yt = y(v), h = m.t + ih - yt, r = Math.min(4, bw / 2, h);
-    el("path", { d: `M${cx - bw / 2},${m.t + ih} V${yt + r} Q${cx - bw / 2},${yt} ${cx - bw / 2 + r},${yt} H${cx + bw / 2 - r} Q${cx + bw / 2},${yt} ${cx + bw / 2},${yt + r} V${m.t + ih} Z`, fill: color }, svg);
-    if (i % every === 0) { const t = el("text", { x: cx, y: H - 8, "text-anchor": "middle" }, svg); t.textContent = c; }
-    const hit = el("rect", { x: cx - band / 2, y: m.t, width: band, height: ih, fill: "transparent", tabindex: 0 }, svg);
-    const on = (ev) => { hit.setAttribute("fill", css("--wash")); showTip(ev, catLabel(i), [{ name: title, value: fmt(v) }]); };
-    hit.addEventListener("pointermove", on);
-    hit.addEventListener("focus", () => { const b = hit.getBoundingClientRect(); on({ clientX: b.right, clientY: b.top + 20 }); });
-    hit.addEventListener("pointerleave", () => { hit.setAttribute("fill", "transparent"); hideTip(); });
-    hit.addEventListener("blur", () => { hit.setAttribute("fill", "transparent"); hideTip(); });
-  });
-  if (ref) {
-    el("line", { x1: m.l, x2: W - m.r, y1: y(ref), y2: y(ref), stroke: css("--text-secondary"), "stroke-width": 1, "stroke-dasharray": "4 3" }, svg);
-    const t = el("text", { x: W - m.r, y: y(ref) - 5, "text-anchor": "end", class: "lbl" }, svg); t.textContent = refLabel;
-  }
-}
-
 // ---------- aggregations ----------
 function weekly(list, valueFn, filter = () => true) {
   const map = new Map();
@@ -684,36 +644,8 @@ function renderForm() {
   }
 }
 
-// ---------- Chicago ----------
-function renderChicago() {
-  const L = rows({ ...D.chicago_laps, date: D.chicago_laps.lap.map(() => "2026-10-11") }).filter((l) => l.lap >= 2 && l.lap <= 27);
-  let cum = 0; const kmAt = L.map((l) => (cum += l.distance_m) / 1000);
-  const cats = kmAt.map((k) => nf(k, 0));
-  const lapName = (i) => `Lap ${i + 1} · to ${nf(kmAt[i], 1)} km`;
-  const CP = 266.2;
-  { const box = card("lapPower", { title: "Average power per lap", desc: "Watts. Labels show km at the end of each lap. Dashed line is 85% of your CP on race day (226 W).", table: () => ({ cols: ["Lap", "Ends at", "Time", "Power", "HR", "Cadence"], rows: L.map((l, i) => [i + 1, nf(kmAt[i], 1) + " km", fmtHMS(l.duration_s), nf(l.power_w) + " W", nf(l.hr), nf(l.cadence)]) }) });
-    columnChart(box, { cats, vals: L.map((l) => l.power_w), color: C("--series-1"), fmt: (v) => nf(v) + " W", title: "Power", ref: Math.round(CP * 0.85), refLabel: "85% CP", catLabel: lapName }); }
-  { const box = card("lapGct", { title: "Ground contact time per lap", desc: "Milliseconds per step, by km at lap end. It rises as legs tire, and jumps when you walk.", table: () => ({ cols: ["Lap", "Ends at", "Ground time", "Cadence"], rows: L.map((l, i) => [i + 1, nf(kmAt[i], 1) + " km", nf(l.ground_time_ms) + " ms", nf(l.cadence)]) }) });
-    columnChart(box, { cats, vals: L.map((l) => l.ground_time_ms), color: C("--series-1"), fmt: (v) => nf(v) + " ms", title: "Ground contact time", catLabel: lapName }); }
-  const n = $("#chicagoNotes"); n.replaceChildren();
-  const h = document.createElement("h3"); h.textContent = "Walking and race-week context"; n.appendChild(h);
-  const tw = document.createElement("div"); tw.className = "scroll-x"; n.appendChild(tw);
-  const W = D.chicago_walk;
-  renderTable(tw, { cols: ["Where", "Walking", "Distance"], rows: [...W.map((w) => [w.segment, nf(+w.walk_min, 1) + " min", nf(+w.walk_km, 2) + " km"]), ["Total", nf(W.reduce((s, w) => s + +w.walk_min, 0), 0) + " min", nf(W.reduce((s, w) => s + +w.walk_km, 0), 1) + " km"]] });
-  const rhrWeek = daily.filter((d) => d.t >= toT("2026-10-08") && d.t <= toT("2026-10-10")).map((d) => d.rhr);
-  const base = daily.filter((d) => d.t >= toT("2026-08-01") && d.t <= toT("2026-09-20") && d.rhr).map((d) => d.rhr);
-  const baseAvg = base.reduce((a, b) => a + b, 0) / base.length;
-  const notes = [
-    ["Walking: ", "about 31 minutes and 2.9 km, almost all after 32 km. Walking cadence (about 130 steps/min) is easy to tell apart from running (about 180)."],
-    ["Pacing: ", `the first 6 km averaged about 240 W, 90% of CP. A marathon is usually run at 80–85%.`],
-    ["Recovery going in: ", `resting heart rate was ${rhrWeek.join(", ")} bpm over the three days before the race, against a normal of ${nf(baseAvg, 0)}. Sleep was 1.9, 6.8 and 4.9 hours on those nights, after flying from Melbourne.`],
-    ["Injury: ", "a right hamstring strain at the end of August cut weekly volume from about 110 km to about 73 km, and the hamstring did not last the distance."],
-  ];
-  for (const [b, t] of notes) { const p = document.createElement("p"); p.className = "callout"; const s = document.createElement("b"); s.textContent = b; p.append(s, document.createTextNode(t)); n.appendChild(p); }
-}
-
 // ---------- page ----------
-function renderAll() { renderTiles(); renderCharts(); renderForm(); renderChicago(); }
+function renderAll() { renderTiles(); renderCharts(); renderForm(); }
 { const cv = $("#coverage"); const b = (t) => { const e = document.createElement("b"); e.textContent = t; return e; };
   cv.append("Stryd: ", b(`${fmtDate(STRYD_START)} – ${fmtDate(toT(D.stryd_asof))}`), " · Garmin: ", b(`${fmtDate(START_ALL)} – ${fmtDate(toT(D.garmin_asof))}`)); }
 const ft = $("#footer");
